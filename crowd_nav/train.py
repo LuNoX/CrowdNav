@@ -24,6 +24,7 @@ def main():
     parser.add_argument('--weights', type=str)
     parser.add_argument('--resume', default=False, action='store_true')
     parser.add_argument('--gpu', default=False, action='store_true')
+    parser.add_argument('--single_gpu_mode', default=False, action='store_true')
     parser.add_argument('--debug', default=False, action='store_true')
     args = parser.parse_args()
 
@@ -58,6 +59,11 @@ def main():
     logging.info('Current git head hash code: %s'.format(repo.head.object.hexsha))
     device = torch.device("cuda:0" if torch.cuda.is_available() and args.gpu else "cpu")
     logging.info('Using device: %s', device)
+    device_is_gpu = (device == "cuda:0")
+    use_multi_gpu = False  # is only True when: Device is GPU not CPU and single_gpu_mode is False and there are >1 GPUs
+    if device_is_gpu:
+        use_multi_gpu = (not args.single_gpu_mode and torch.cuda.device_count() > 1)
+        logging.info('Utilizing %s GPU(s)', str(torch.cuda.device_count()) if use_multi_gpu else '1')
 
     # configure policy
     policy = policy_factory[args.policy]()
@@ -99,7 +105,7 @@ def main():
     memory = ReplayMemory(capacity)
     model = policy.get_model()
     batch_size = train_config.getint('trainer', 'batch_size')
-    trainer = Trainer(model, memory, device, batch_size)
+    trainer = Trainer(model, memory, device, batch_size, data_parallelism=use_multi_gpu)
     explorer = Explorer(env, robot, device, memory, policy.gamma, target_policy=policy)
 
     # imitation learning

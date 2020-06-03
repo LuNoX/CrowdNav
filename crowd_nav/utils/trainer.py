@@ -6,10 +6,12 @@ from torch.utils.data import DataLoader
 
 
 class Trainer(object):
-    def __init__(self, model, memory, device, batch_size):
+    def __init__(self, model, memory, device, batch_size, data_parallelism=False):
         """
         Train the trainable model of a policy
         """
+        if data_parallelism:
+            model = nn.DataParallel(model)  # Parallelize model operations to enable multi GPU support
         self.model = model
         self.device = device
         self.criterion = nn.MSELoss().to(device)
