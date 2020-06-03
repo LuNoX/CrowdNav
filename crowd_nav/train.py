@@ -57,9 +57,9 @@ def main():
                         format='%(asctime)s, %(levelname)s: %(message)s', datefmt="%Y-%m-%d %H:%M:%S")
     repo = git.Repo(search_parent_directories=True)
     logging.info('Current git head hash code: %s'.format(repo.head.object.hexsha))
-    device = torch.device("cuda:0" if torch.cuda.is_available() and args.gpu else "cpu")
+    device_is_gpu = (torch.cuda.is_available() and args.gpu)
+    device = torch.device("cuda:0" if device_is_gpu else "cpu")
     logging.info('Using device: %s', device)
-    device_is_gpu = (device == "cuda:0")
     use_multi_gpu = False  # is only True when: Device is GPU not CPU and single_gpu_mode is False and there are >1 GPUs
     if device_is_gpu:
         use_multi_gpu = (not args.single_gpu_mode and torch.cuda.device_count() > 1)
